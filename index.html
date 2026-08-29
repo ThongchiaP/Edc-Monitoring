@@ -1,0 +1,1081 @@
+<!-- Chosen Palette: Holographic Cyberpunk Sci-Fi HUD (Deep Space Navy, Cyan Glow, Emerald Pulse) -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>EDC Monitoring Control - Holographic HUD</title>
+ <script src="https://cdn.tailwindcss.com"></script>
+ <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+ <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Orbitron:wght@600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+ <style>
+ body { 
+   font-family: 'Sarabun', sans-serif;
+   background-color: #030712;
+   background-image: 
+     radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.22) 0px, transparent 40%),
+     radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.18) 0px, transparent 45%),
+     radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.8) 0px, transparent 65%),
+     radial-gradient(at 85% 95%, rgba(16, 185, 129, 0.15) 0px, transparent 45%),
+     radial-gradient(at 10% 90%, rgba(56, 189, 248, 0.18) 0px, transparent 45%),
+     linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+     linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+   background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+   background-attachment: fixed;
+   color: #f1f5f9;
+ }
+ .font-tech { font-family: 'Orbitron', 'Sarabun', sans-serif; }
+ .font-mono-tech { font-family: 'Share Tech Mono', monospace; }
+ .hud-card {
+   background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(2, 6, 23, 0.88) 100%);
+   backdrop-filter: blur(20px);
+   -webkit-backdrop-filter: blur(20px);
+   border: 1px solid rgba(56, 189, 248, 0.35);
+   box-shadow: 0 0 25px -5px rgba(14, 165, 233, 0.25), inset 0 0 20px rgba(56, 189, 248, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+   border-radius: 14px;
+   position: relative;
+ }
+ .hud-card::before {
+   content: ''; position: absolute; top: -1px; left: -1px; width: 12px; height: 12px;
+   border-top: 2px solid #38bdf8; border-left: 2px solid #38bdf8; border-top-left-radius: 14px; pointer-events: none;
+ }
+ .hud-card::after {
+   content: ''; position: absolute; bottom: -1px; right: -1px; width: 12px; height: 12px;
+   border-bottom: 2px solid #38bdf8; border-right: 2px solid #38bdf8; border-bottom-right-radius: 14px; pointer-events: none;
+ }
+ .hud-header {
+   background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.95) 100%);
+   backdrop-filter: blur(24px);
+   border: 1px solid rgba(56, 189, 248, 0.45);
+   box-shadow: 0 0 35px rgba(14, 165, 233, 0.25), inset 0 0 25px rgba(56, 189, 248, 0.12);
+ }
+ .logo-3d-wrapper { position: relative; width: 58px; height: 58px; perspective: 1200px; display: flex; align-items: center; justify-content: center; }
+ .logo-3d-card {
+   width: 100%; height: 100%; border-radius: 16px;
+   background: linear-gradient(145deg, #0f172a 0%, #0284c7 50%, #0369a1 100%);
+   border: 2px solid #38bdf8;
+   box-shadow: 0 12px 30px -4px rgba(14, 165, 233, 0.6), 0 0 20px rgba(56, 189, 248, 0.4);
+   display: flex; align-items: center; justify-content: center;
+ }
+ .radar-chart-container {
+   position: relative;
+   background: radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, rgba(2, 6, 23, 0.4) 70%);
+   border-radius: 50%;
+ }
+ .radar-chart-container::before {
+   content: ''; position: absolute; inset: 8px; border: 1px dashed rgba(56, 189, 248, 0.25); border-radius: 50%; pointer-events: none; animation: spin-slow 40s linear infinite;
+ }
+ @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+ .hud-th {
+   background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+   color: #38bdf8; border-bottom: 2px solid #0284c7; border-right: 1px solid rgba(56, 189, 248, 0.2);
+   letter-spacing: 0.04em; text-shadow: 0 0 8px rgba(56, 189, 248, 0.5); font-size: 12px;
+ }
+ .sortable-th { cursor: pointer; user-select: none; transition: all 0.2s ease; }
+ .sortable-th:hover { background: rgba(56, 189, 248, 0.25); color: #bae6fd; }
+
+ .hud-date-box {
+   position: relative; width: 100%; height: 28px; display: flex; align-items: center; justify-content: center; gap: 4px;
+   background-color: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px;
+   font-size: 11px; font-family: 'Share Tech Mono', monospace; font-weight: 600; color: #93c5fd; cursor: pointer; transition: all 0.15s ease;
+ }
+ .hud-date-box:hover { border-color: #38bdf8; background-color: rgba(56, 189, 248, 0.22); color: #fff; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+ .hud-date-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; }
+
+ .hud-btn-cyan { background: rgba(14, 165, 233, 0.3); border: 1px solid #38bdf8; color: #e0f2fe; }
+ .hud-btn-cyan:hover { background: rgba(14, 165, 233, 0.5); color: #fff; }
+ .hud-btn-purple { background: rgba(168, 85, 247, 0.3); border: 1px solid #c084fc; color: #f3e8ff; }
+ .hud-btn-purple:hover { background: rgba(168, 85, 247, 0.5); color: #fff; }
+ .hud-btn-emerald { background: rgba(16, 185, 129, 0.3); border: 1px solid #34d399; color: #d1fae5; }
+ .hud-btn-emerald:hover { background: rgba(16, 185, 129, 0.5); color: #fff; }
+
+ .table-row-item { transition: background 0.2s ease; background: rgba(15, 23, 42, 0.5); }
+ .table-row-item:hover { background: rgba(56, 189, 248, 0.1) !important; }
+ .table-row-item.row-deleting { opacity: 0; transform: scaleY(0) translateY(-10px); }
+
+ #hudNotification {
+   transition: opacity 0.4s ease, transform 0.4s ease;
+ }
+ </style>
+</head>
+<body class="p-2 md:p-6 min-h-screen">
+
+ <!-- HUD Floating Notification Toast (5 Seconds Auto-Close) -->
+ <div id="hudNotification" class="fixed top-6 right-6 z-50 hidden max-w-md w-full bg-slate-900/95 border-2 border-emerald-400/80 shadow-[0_0_25px_rgba(52,211,153,0.5)] rounded-2xl p-4 text-emerald-100 backdrop-blur-xl">
+   <div class="flex items-start gap-3">
+     <div class="p-2 rounded-xl bg-emerald-950/80 border border-emerald-400 text-emerald-400 shrink-0">
+       <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+       </svg>
+     </div>
+     <div class="flex-1">
+       <h4 id="hudNotifTitle" class="font-tech font-bold text-sm text-emerald-300 tracking-wide">SYSTEM NOTIFICATION</h4>
+       <p id="hudNotifMessage" class="text-xs text-slate-300 mt-1 leading-relaxed font-sans"></p>
+     </div>
+     <button onclick="closeNotification()" class="text-slate-400 hover:text-white text-sm font-bold px-1.5 py-0.5 rounded-lg hover:bg-slate-800">✕</button>
+   </div>
+   <div class="w-full bg-slate-800 h-1 rounded-full mt-3 overflow-hidden">
+     <div id="hudNotifProgressBar" class="bg-emerald-400 h-full w-full transition-all linear duration-[5000ms]"></div>
+   </div>
+ </div>
+
+ <div class="w-full max-w-[98%] mx-auto space-y-6">
+ 
+ <!-- Header Section -->
+ <div class="hud-card hud-header p-4 md:p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+   <div class="flex items-center gap-4">
+     <div class="logo-3d-wrapper shrink-0">
+       <div class="logo-3d-card">
+         <svg class="w-10 h-10 drop-shadow-[0_6px_12px_rgba(0,0,0,0.8)]" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+           <path d="M16 12C16 9.79086 17.7909 8 20 8H44C46.2091 8 48 9.79086 48 12V52C48 54.2091 46.2091 56 44 56H20C17.7909 56 16 54.2091 16 52V12Z" fill="#090d16" stroke="#38bdf8" stroke-width="2"/>
+           <path d="M20 9H44C45.6569 9 47 10.3431 47 12V16H17V12C17 10.3431 18.3431 9 20 9Z" fill="url(#topBevelGrad)" opacity="0.8"/>
+           <rect x="21" y="18" width="22" height="13" rx="3" fill="#020617" stroke="#38bdf8" stroke-width="1.5"/>
+           <path d="M22 19L36 19L27 30L22 30Z" fill="#ffffff" opacity="0.1"/>
+           <path d="M25 26L28 22L31 25L35 20L39 25" stroke="#34d399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+           <circle cx="39" cy="20" r="1.8" fill="#34d399"/>
+           <rect x="22" y="35" width="4" height="3.5" rx="1" fill="#1e293b" stroke="#38bdf8" stroke-width="0.8"/>
+           <rect x="30" y="35" width="4" height="3.5" rx="1" fill="#1e293b" stroke="#38bdf8" stroke-width="0.8"/>
+           <rect x="38" y="35" width="4" height="3.5" rx="1" fill="#1e293b" stroke="#38bdf8" stroke-width="0.8"/>
+           <rect x="22" y="41" width="4" height="3.5" rx="1" fill="#1e293b" stroke="#38bdf8" stroke-width="0.8"/>
+           <rect x="30" y="41" width="4" height="3.5" rx="1" fill="#1e293b" stroke="#38bdf8" stroke-width="0.8"/>
+           <rect x="38" y="41" width="4" height="3.5" rx="1" fill="#1e293b" stroke="#38bdf8" stroke-width="0.8"/>
+           <rect x="38" y="47" width="4" height="6" rx="1" fill="#059669" stroke="#34d399" stroke-width="0.8"/>
+           <rect x="22" y="47" width="4" height="6" rx="1" fill="#e11d48" stroke="#fb7185" stroke-width="0.8"/>
+           <rect x="30" y="47" width="4" height="6" rx="1" fill="#d97706" stroke="#fbbf24" stroke-width="0.8"/>
+           <path d="M47 22C49 24 49 28 47 30" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
+           <path d="M50 20C53 23 53 29 50 32" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/>
+           <defs>
+             <linearGradient id="topBevelGrad" x1="17" y1="9" x2="47" y2="16" gradientUnits="userSpaceOnUse">
+               <stop stop-color="#38bdf8" stop-opacity="0.8"/><stop offset="1" stop-color="#1e3a8a" stop-opacity="0.3"/>
+             </linearGradient>
+           </defs>
+         </svg>
+       </div>
+       <span class="absolute -top-1 -right-1 flex h-4 w-4 pointer-events-none">
+         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+         <span class="relative inline-flex rounded-full h-4 w-4 bg-cyan-400 border-2 border-slate-900"></span>
+       </span>
+     </div>
+     <div>
+       <h1 class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-emerald-300 tracking-wide font-tech" style="text-shadow: 0 0 18px rgba(56, 189, 248, 0.45);">
+         EDC Monitoring Control
+       </h1>
+       <p class="text-xs md:text-sm text-sky-200/80 mt-0.5 flex items-center gap-1.5">
+         <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+         Workload Overview & Dispatch Control
+       </p>
+     </div>
+   </div>
+
+   <!-- Toolbar -->
+   <div class="flex flex-wrap items-center gap-2.5">
+     <!-- Status Indicator -->
+     <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/80 border border-cyan-500/30 text-xs text-cyan-300 font-mono-tech shadow-[0_0_15px_rgba(14,165,233,0.15)]">
+       <span class="relative flex h-2.5 w-2.5">
+         <span id="syncIndicatorPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+         <span id="syncIndicatorDot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+       </span>
+       <span id="syncStatusText" class="tracking-wide">READY</span>
+     </div>
+  
+     <!-- Auto Toggle -->
+     <button onclick="toggleAutoSync()" id="autoSyncToggleBtn" class="px-3.5 py-2.5 rounded-xl text-xs font-semibold font-mono-tech flex items-center gap-1.5 border border-emerald-400/60 bg-emerald-950/40 text-emerald-300">
+       <span id="autoSyncDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+       <span id="autoSyncLabel">AUTO-SYNC: ON</span>
+     </button>
+
+     <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="importExcel(event)">
+     <button onclick="document.getElementById('excelFileInput').click()" class="hud-btn-emerald text-xs font-semibold px-3.5 py-2.5 rounded-xl">↑ Import File</button>
+     <button onclick="exportExcel()" class="hud-btn-purple text-xs font-semibold px-3.5 py-2.5 rounded-xl">↓ Export</button>
+     </div>
+ </div>
+
+ <!-- Visual Analytics Section -->
+ <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+   <div class="hud-card p-5 flex flex-col justify-between">
+     <div class="w-full text-center mb-1">
+       <h3 class="text-base font-bold text-cyan-300 font-tech tracking-wide" style="text-shadow: 0 0 10px rgba(56,189,248,0.4);">
+         Job Status Distribution
+       </h3>
+     </div>
+     <div class="relative h-64 w-full flex items-center justify-center radar-chart-container">
+       <canvas id="statusChart"></canvas>
+       <div class="absolute flex flex-col items-center justify-center pointer-events-none">
+         <div class="flex items-center gap-1">
+           <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+           <span class="text-[9px] text-cyan-300/80 font-tech tracking-wider">TOTAL</span>
+         </div>
+         <span id="center-doughnut-total" class="text-2xl font-black text-white font-tech leading-none my-0.5" style="text-shadow: 0 0 12px rgba(56, 189, 248, 0.9);">0</span>
+         <span class="text-[9px] text-slate-400 font-tech">JOBS</span>
+       </div>
+     </div>
+     <div class="flex flex-wrap justify-center items-center gap-2.5 pt-2 text-[10.5px] font-mono-tech border-t border-cyan-500/15 mt-1">
+       <span class="flex items-center gap-1 font-bold text-emerald-300"><span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"></span> Completed</span>
+       <span class="flex items-center gap-1 font-bold text-amber-300"><span class="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]"></span> Appointment</span>
+       <span class="flex items-center gap-1 font-bold text-rose-300"><span class="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_6px_#fb7185]"></span> Pending</span>
+       <span class="flex items-center gap-1 font-bold text-cyan-300"><span class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#38bdf8]"></span> Prepare</span>
+     </div>
+   </div>
+
+   <div class="hud-card p-5 flex flex-col justify-between">
+     <div class="w-full text-center mb-2"><h3 class="text-base font-bold text-cyan-300 font-tech">Workload by Bank</h3></div>
+     <div class="relative h-64 w-full"><canvas id="bankChart"></canvas></div>
+   </div>
+
+   <div class="hud-card p-5 flex flex-col justify-between lg:col-span-1 md:col-span-2">
+     <div class="w-full text-center mb-2"><h3 class="text-base font-bold text-cyan-300 font-tech">Workload by Province</h3></div>
+     <div class="relative h-64 w-full"><canvas id="provinceChart"></canvas></div>
+   </div>
+ </div>
+
+ <!-- Editable Data Table Section -->
+ <div class="hud-card overflow-hidden">
+   <div class="p-4 border-b border-cyan-500/25 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-900/60">
+     <h3 class="text-base font-bold text-cyan-300 font-tech tracking-wide flex items-center gap-2">
+       <span class="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#38bdf8]"></span>
+       ตารางข้อมูลการแจ้งซ่อม/บริการ
+     </h3>
+     <div class="relative w-full sm:w-96">
+       <input type="text" id="searchInput" oninput="handleRealtimeSearch(this.value)" placeholder="ค้นหา TID, Bank, Merchant, Status หรือ Job Type..." class="w-full pl-8 pr-7 py-2 text-xs bg-slate-950/80 border border-cyan-500/40 rounded-xl text-cyan-100 placeholder-slate-400 focus:outline-none focus:border-cyan-400 transition">
+       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-cyan-400 text-xs">🔍</div>
+       <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-400 text-xs">✕</button>
+     </div>
+   </div>
+ 
+   <div class="w-full overflow-x-auto">
+     <table class="w-full text-center border-collapse text-[12.5px] min-w-[1400px]">
+       <thead>
+         <tr class="uppercase font-bold text-[11.5px] leading-tight">
+           <th onclick="sortTable('no')" class="sortable-th hud-th py-3.5 px-2 w-[45px]">No.</th>
+           <th onclick="sortTable('tid')" class="sortable-th hud-th py-3.5 px-2 w-[90px]">TID <span id="sort-icon-tid">⇅</span></th>
+           <th onclick="sortTable('bank')" class="sortable-th hud-th py-3.5 px-2 w-[70px]">Bank <span id="sort-icon-bank">⇅</span></th>
+           <th onclick="sortTable('merchant')" class="sortable-th hud-th py-3.5 px-3 w-[155px]">Merchant (TH) <span id="sort-icon-merchant">⇅</span></th>
+           <th onclick="sortTable('province')" class="sortable-th hud-th py-3.5 px-2 w-[90px]">Province <span id="sort-icon-province">⇅</span></th>
+           <th onclick="sortTable('reqDate')" class="sortable-th hud-th py-3.5 px-2 w-[100px]">Request <span id="sort-icon-reqDate">⇅</span></th>
+           <th onclick="sortTable('delDate')" class="sortable-th hud-th py-3.5 px-2 w-[100px]">Delivery <span id="sort-icon-delDate">⇅</span></th>
+           <th onclick="sortTable('appDate')" class="sortable-th hud-th py-3.5 px-2 w-[100px]">Appoint <span id="sort-icon-appDate">⇅</span></th>
+           <th onclick="sortTable('closeDate')" class="sortable-th hud-th py-3.5 px-2 w-[100px]">Close <span id="sort-icon-closeDate">⇅</span></th>
+           <th onclick="sortTable('status')" class="sortable-th hud-th py-3.5 px-2 w-[110px]">STATUS <span id="sort-icon-status">⇅</span></th>
+           <th onclick="sortTable('jobType')" class="sortable-th hud-th py-3.5 px-2 w-[80px]">Job Type <span id="sort-icon-jobType">⇅</span></th>
+           <th onclick="sortTable('remark')" class="sortable-th hud-th py-3.5 px-3 w-[235px]">Remark <span id="sort-icon-remark">⇅</span></th>
+           <th onclick="sortTable('project')" class="sortable-th hud-th py-3.5 px-2 w-[80px]">Project <span id="sort-icon-project">⇅</span></th>
+           <th onclick="sortTable('contact')" class="sortable-th hud-th py-3.5 px-2 w-[115px]">Contact <span id="sort-icon-contact">⇅</span></th>
+           <th onclick="sortTable('tel')" class="sortable-th hud-th py-3.5 px-2 w-[115px]">Telephone <span id="sort-icon-tel">⇅</span></th>
+           <th class="hud-th py-3.5 px-1 text-rose-400 w-[45px]">ลบ</th>
+         </tr>
+       </thead>
+       <tbody id="tableBody" class="divide-y divide-cyan-500/10"></tbody>
+     </table>
+   </div>
+ </div>
+ </div>
+
+ <script>
+ // =========================================================================
+ // GOOGLE SPREADSHEET ID & APPS SCRIPT URL
+ // =========================================================================
+ const GOOGLE_SPREADSHEET_ID = "1rqoO4FYlzSO2mu2dHv_oeNMyK1czad6nUKFy2W50UKo";
+ const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyWDaLQ0lsUCmYrJfGb3kx2ed17L-uIqvpby7NOUm4WgFrADBpNxIrFzTdYJYPfeCd-/exec"; 
+ const SYNC_INTERVAL_MS = 5000;
+
+ let isAutoSyncEnabled = true;
+ let syncTimer = null;
+ let previousDataHash = "";
+ let workData = [];
+ let notifTimer = null;
+
+ // ฟังก์ชันแสดง Notification 5 วินาทีแล้วปิดอัตโนมัติ
+ function showNotification(title, message, isError = false) {
+   const notif = document.getElementById('hudNotification');
+   const notifTitle = document.getElementById('hudNotifTitle');
+   const notifMsg = document.getElementById('hudNotifMessage');
+   const progressBar = document.getElementById('hudNotifProgressBar');
+   
+   if (!notif) return;
+   if (notifTimer) clearTimeout(notifTimer);
+
+   notifTitle.innerText = title;
+   notifMsg.innerText = message;
+
+   if (isError) {
+     notif.className = "fixed top-6 right-6 z-50 max-w-md w-full bg-slate-900/95 border-2 border-rose-500/80 shadow-[0_0_25px_rgba(244,63,94,0.5)] rounded-2xl p-4 text-rose-100 backdrop-blur-xl";
+     if (progressBar) progressBar.className = "bg-rose-500 h-full w-full transition-all linear duration-[5000ms]";
+   } else {
+     notif.className = "fixed top-6 right-6 z-50 max-w-md w-full bg-slate-900/95 border-2 border-emerald-400/80 shadow-[0_0_25px_rgba(52,211,153,0.5)] rounded-2xl p-4 text-emerald-100 backdrop-blur-xl";
+     if (progressBar) progressBar.className = "bg-emerald-400 h-full w-full transition-all linear duration-[5000ms]";
+   }
+
+   if (progressBar) {
+     progressBar.style.transition = 'none';
+     progressBar.style.width = '100%';
+     setTimeout(() => {
+       progressBar.style.transition = 'width 5000ms linear';
+       progressBar.style.width = '0%';
+     }, 50);
+   }
+
+   notif.classList.remove('hidden');
+   notif.style.opacity = '1';
+   notif.style.transform = 'translateY(0)';
+
+   notifTimer = setTimeout(() => {
+     closeNotification();
+   }, 5000); // 5 วินาทีตามโจทย์[cite: 1]
+ }
+
+ function closeNotification() {
+   const notif = document.getElementById('hudNotification');
+   if (!notif) return;
+   notif.style.opacity = '0';
+   notif.style.transform = 'translateY(-10px)';
+   setTimeout(() => {
+     notif.classList.add('hidden');
+   }, 400);
+ }
+
+ function computeAutoStatus(delDate, appDate, closeDate) {
+   const hasDel = !!(delDate && String(delDate).trim() && String(delDate).trim() !== '-');
+   const hasApp = !!(appDate && String(appDate).trim() && String(appDate).trim() !== '-');
+   const hasClose = !!(closeDate && String(closeDate).trim() && String(closeDate).trim() !== '-');
+
+   if (hasDel && hasApp && hasClose) return "Completed";
+   if (hasDel && hasApp) return "Appointment";
+   if (hasDel) return "Pending";
+   return "Prepare";
+ }
+
+ let currentSortColumn = null;
+ let currentSortDirection = 'asc';
+ let currentSearchQuery = "";
+ let statusChartInstance = null;
+ let bankChartInstance = null;
+ let provinceChartInstance = null;
+
+ const officialBankColors = {
+   'BBL': { bg: 'rgba(30, 58, 138, 0.82)', border: '#3b82f6' },
+   'KTB': { bg: 'rgba(14, 165, 233, 0.82)', border: '#38bdf8' },
+   'KBANK': { bg: 'rgba(16, 185, 129, 0.82)', border: '#34d399' },
+   'SCB': { bg: 'rgba(147, 51, 234, 0.82)', border: '#c084fc' },
+   'BAY': { bg: 'rgba(245, 158, 11, 0.82)', border: '#fbbf24' },
+   'GSB': { bg: 'rgba(244, 63, 94, 0.82)', border: '#fb7185' }
+ };
+
+ function getBankColor(bankName, index) {
+   if (!bankName) return { bg: 'rgba(148, 163, 184, 0.5)', border: '#94a3b8' };
+   const cleanBank = String(bankName).trim().toUpperCase();
+   if (officialBankColors[cleanBank]) return officialBankColors[cleanBank];
+   const fallbackPalette = [
+     { bg: 'rgba(56, 189, 248, 0.75)', border: '#38bdf8' },
+     { bg: 'rgba(168, 85, 247, 0.75)', border: '#c084fc' },
+     { bg: 'rgba(52, 211, 153, 0.75)', border: '#34d399' },
+     { bg: 'rgba(251, 191, 36, 0.75)', border: '#fbbf24' }
+   ];
+   return fallbackPalette[index % fallbackPalette.length];
+ }
+
+ const thaiProvinceColorMap = {
+   'เชียงใหม่': { bg: 'rgba(56, 189, 248, 0.82)', border: '#38bdf8' },
+   'เชียงราย': { bg: 'rgba(14, 165, 233, 0.82)', border: '#0ea5e9'},
+   'น่าน': { bg: 'rgba(52, 211, 153, 0.82)', border: '#34d399' },
+   'พะเยา': { bg: 'rgba(45, 212, 191, 0.82)', border: '#2dd4bf' },
+   'ลำปาง': { bg: 'rgba(192, 132, 252, 0.82)', border: '#c084fc' },
+   'ลำพูน': { bg: 'rgba(232, 121, 249, 0.82)', border: '#e879f9' },
+   'แพร่': { bg: 'rgba(168, 85, 247, 0.82)', border: '#a855f7' },
+   'แม่ฮ่องสอน': { bg: 'rgba(74, 222, 128, 0.82)', border: '#4ade80' },
+   'อุตรดิตถ์': { bg: 'rgba(251, 191, 36, 0.82)', border: '#fbbf24' },
+   'ตาก': { bg: 'rgba(251, 113, 133, 0.82)', border: '#fb7185' },
+   'สุโขทัย': { bg: 'rgba(245, 158, 11, 0.82)', border: '#f59e0b' },
+   'พิษณุโลก': { bg: 'rgba(129, 140, 248, 0.82)', border: '#818cf8' },
+   'พิจิตร': { bg: 'rgba(167, 139, 250, 0.82)', border: '#a78bfa' },
+   'กำแพงเพชร': { bg: 'rgba(20, 184, 166, 0.82)', border: '#14b8a6' },
+   'เพชรบูรณ์': { bg: 'rgba(16, 185, 129, 0.82)', border: '#10b981' },
+   'นครสวรรค์': { bg: 'rgba(244, 63, 94, 0.82)', border: '#f43f5e' },
+   'อุทัยธานี': { bg: 'rgba(253, 186, 116, 0.82)', border: '#fdba74' },
+   'กรุงเทพมหานคร': { bg: 'rgba(99, 102, 241, 0.82)', border: '#6366f1' }
+ };
+
+ function getProvinceColor(provinceName, index) {
+   if (!provinceName || provinceName === '-') return { bg: 'rgba(148, 163, 184, 0.5)', border: '#94a3b8' };
+   const cleanProv = String(provinceName).trim();
+   if (thaiProvinceColorMap[cleanProv]) return thaiProvinceColorMap[cleanProv];
+   const fallbackPalette = [
+     { bg: 'rgba(56, 189, 248, 0.75)', border: '#38bdf8' },
+     { bg: 'rgba(168, 85, 247, 0.75)', border: '#c084fc' },
+     { bg: 'rgba(52, 211, 153, 0.75)', border: '#34d399' },
+     { bg: 'rgba(251, 191, 36, 0.75)', border: '#fbbf24' }
+   ];
+   return fallbackPalette[index % fallbackPalette.length];
+ }
+
+ function parseToISODate(val) {
+   if (val === undefined || val === null) return "";
+   if (val instanceof Date) {
+     if (isNaN(val.getTime())) return "";
+     const y = val.getFullYear();
+     const m = String(val.getMonth() + 1).padStart(2, '0');
+     const d = String(val.getDate()).padStart(2, '0');
+     return `${y}-${m}-${d}`;
+   }
+   const rawNum = Number(val);
+   if (!isNaN(rawNum) && String(val).trim() !== '' && !String(val).includes('/') && !String(val).includes('-')) {
+     if (rawNum > 20000 && rawNum < 90000) {
+       const excelEpoch = new Date(1899, 11, 30);
+       const jsDate = new Date(excelEpoch.getTime() + rawNum * 86400 * 1000);
+       const y = jsDate.getFullYear();
+       const m = String(jsDate.getMonth() + 1).padStart(2, '0');
+       const d = String(jsDate.getDate()).padStart(2, '0');
+       return `${y}-${m}-${d}`;
+     }
+   }
+   const str = String(val).trim();
+   if (!str || str === '-' || str === 'null' || str === 'undefined') return "";
+   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+   const dateMatch = str.match(/Date\((\d+),(\d+),(\d+)\)/);
+   if (dateMatch) {
+     const y = dateMatch[1];
+     const m = String(parseInt(dateMatch[2], 10) + 1).padStart(2, '0');
+     const d = String(dateMatch[3]).padStart(2, '0');
+     return `${y}-${m}-${d}`;
+   }
+   const cleanStr = str.split(' ')[0];
+   const parts = cleanStr.split(/[\/\-\.]/);
+   if (parts.length === 3) {
+     let p0 = parts[0].trim();
+     let p1 = parts[1].trim();
+     let p2 = parts[2].trim();
+     if (p0.length === 4) {
+       let y = parseInt(p0, 10);
+       if (y > 2400) y -= 543;
+       return `${y}-${p1.padStart(2, '0')}-${p2.padStart(2, '0')}`;
+     }
+     let y = p2;
+     if (y.length === 2) y = `20${y}`;
+     let numY = parseInt(y, 10);
+     if (numY > 2400) numY -= 543;
+     return `${numY}-${p1.padStart(2, '0')}-${p0.padStart(2, '0')}`;
+   }
+   return "";
+ }
+
+ function getStatusBadgeStyle(status) {
+   switch (status) {
+     case 'Completed': return 'bg-emerald-950/80 text-emerald-300 border border-emerald-400/80 shadow-[0_0_10px_rgba(52,211,153,0.4)]';
+     case 'Appointment': return 'bg-amber-950/80 text-amber-300 border border-amber-400/80 shadow-[0_0_10px_rgba(251,191,36,0.4)]';
+     case 'Pending': return 'bg-rose-950/80 text-rose-300 border border-rose-400/80 shadow-[0_0_10px_rgba(251,113,133,0.4)]';
+     case 'Prepare': return 'bg-sky-950/80 text-cyan-300 border border-cyan-400/80 shadow-[0_0_10px_rgba(56,189,248,0.4)]';
+     default: return 'bg-slate-900/80 text-slate-300 border border-slate-600';
+   }
+ }
+
+ function formatDMY(val) {
+   if (!val) return "-";
+   const str = String(val).trim();
+   if (str.includes('-')) {
+     const parts = str.split('-');
+     if (parts.length === 3 && parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+   }
+   return str;
+ }
+
+ function openInCellPicker(inputElem) {
+   if (!inputElem) return;
+   if (inputElem.showPicker) { try { inputElem.showPicker(); } catch (e) { inputElem.focus(); } }
+   else { inputElem.focus(); }
+ }
+
+ function handleRealtimeSearch(value) {
+   currentSearchQuery = (value || "").trim().toLowerCase();
+   const clearBtn = document.getElementById('clearSearchBtn');
+   if (clearBtn) {
+     if (currentSearchQuery) clearBtn.classList.remove('hidden');
+     else clearBtn.classList.add('hidden');
+   }
+   renderTable();
+ }
+
+ function clearSearch() {
+   const input = document.getElementById('searchInput');
+   if (input) input.value = "";
+   currentSearchQuery = "";
+   const clearBtn = document.getElementById('clearSearchBtn');
+   if (clearBtn) clearBtn.classList.add('hidden');
+   renderTable();
+ }
+
+ function sortTable(columnKey) {
+   if (columnKey === 'no') return;
+   if (currentSortColumn === columnKey) {
+     if (currentSortDirection === 'asc') currentSortDirection = 'desc';
+     else { currentSortColumn = null; currentSortDirection = 'asc'; renderTable(); return; }
+   } else {
+     currentSortColumn = columnKey;
+     currentSortDirection = 'asc';
+   }
+   workData.sort((a, b) => {
+     let valA = String(a[currentSortColumn] || '').trim();
+     let valB = String(b[currentSortColumn] || '').trim();
+     const cmp = valA.localeCompare(valB, 'th', { numeric: true });
+     return currentSortDirection === 'asc' ? cmp : -cmp;
+   });
+   renderTable();
+ }
+
+ function renderTable() {
+   const tbody = document.getElementById('tableBody');
+   if (!tbody) return;
+   tbody.innerHTML = '';
+   
+   const visibleData = [];
+   const visibleIndices = [];
+
+   workData.forEach((row, originalIndex) => {
+     if (!currentSearchQuery) {
+       visibleData.push(row);
+       visibleIndices.push(originalIndex);
+     } else {
+       const matchTid = String(row.tid || '').toLowerCase().includes(currentSearchQuery);
+       const matchBank = String(row.bank || '').toLowerCase().includes(currentSearchQuery);
+       const matchMerchant = String(row.merchant || '').toLowerCase().includes(currentSearchQuery);
+       const matchStatus = String(row.status || '').toLowerCase().includes(currentSearchQuery);
+       const matchJobType = String(row.jobType || '').toLowerCase().includes(currentSearchQuery);
+       
+       if (matchTid || matchBank || matchMerchant || matchStatus || matchJobType) {
+         visibleData.push(row);
+         visibleIndices.push(originalIndex);
+       }
+     }
+   });
+
+   if (visibleData.length === 0) {
+     tbody.innerHTML = `<tr><td colspan="16" class="py-8 text-center text-cyan-400/60 font-semibold font-tech text-sm">กำลังเชื่อมต่อ Google Sheets หรือไม่พบข้อมูลในระบบ...</td></tr>`;
+     updateDashboardWithData([]);
+     return;
+   }
+
+   visibleData.forEach((row, displayIndex) => {
+     const origIndex = visibleIndices[displayIndex];
+     const tr = document.createElement('tr');
+     tr.className = "table-row-item border-b border-cyan-500/10";
+     const statusBadgeClasses = getStatusBadgeStyle(row.status);
+
+     tr.innerHTML = `
+       <td class="py-3 px-1 text-slate-400 font-mono-tech text-center border-r border-cyan-500/10 font-bold">${displayIndex + 1}</td>
+       <td class="py-3 px-1.5 font-mono-tech font-bold text-cyan-300 text-center border-r border-cyan-500/10 text-[13px]">${row.tid || '-'}</td>
+       <td class="py-3 px-1.5 font-bold text-center border-r border-cyan-500/10 text-sky-200 text-[12.5px]">${row.bank || '-'}</td>
+       <td class="py-3 px-3 border-r border-cyan-500/10 text-left text-slate-100 font-medium text-[12.5px] leading-snug">${row.merchant || '-'}</td>
+       <td class="py-3 px-2 text-center border-r border-cyan-500/10 text-slate-200 text-[12.5px]">${row.province || '-'}</td>
+       
+       <td class="py-1.5 px-1 border-r border-cyan-500/10 text-center"><div class="hud-date-box" onclick="openInCellPicker(this.querySelector('input'))"><span>${formatDMY(row.reqDate)}</span><input type="date" value="${row.reqDate || ''}" onchange="updateCell(${origIndex}, 'reqDate', this.value)" class="hud-date-input"></div></td>
+       <td class="py-1.5 px-1 border-r border-cyan-500/10 text-center"><div class="hud-date-box" onclick="openInCellPicker(this.querySelector('input'))"><span>${formatDMY(row.delDate)}</span><input type="date" value="${row.delDate || ''}" onchange="updateCell(${origIndex}, 'delDate', this.value)" class="hud-date-input"></div></td>
+       <td class="py-1.5 px-1 border-r border-cyan-500/10 text-center"><div class="hud-date-box" onclick="openInCellPicker(this.querySelector('input'))"><span>${formatDMY(row.appDate)}</span><input type="date" value="${row.appDate || ''}" onchange="updateCell(${origIndex}, 'appDate', this.value)" class="hud-date-input"></div></td>
+       <td class="py-1.5 px-1 border-r border-cyan-500/10 text-center"><div class="hud-date-box" onclick="openInCellPicker(this.querySelector('input'))"><span>${formatDMY(row.closeDate)}</span><input type="date" value="${row.closeDate || ''}" onchange="updateCell(${origIndex}, 'closeDate', this.value)" class="hud-date-input"></div></td>
+
+       <td class="py-2.5 px-1.5 border-r border-cyan-500/10 text-center">
+         <span class="inline-block px-2.5 py-0.5 rounded-md text-[10.5px] font-bold font-mono-tech tracking-wider transition ${statusBadgeClasses}">
+           ${row.status}
+         </span>
+       </td>
+
+       <td class="py-3 px-1.5 border-r border-cyan-500/10 text-center font-semibold text-sky-300 text-[12.5px]">${row.jobType || '-'}</td>
+       <td class="py-3 px-3 border-r border-cyan-500/10 text-left text-[12px] text-slate-300 leading-snug">${row.remark || '-'}</td>
+       <td class="py-3 px-1.5 text-slate-400 border-r border-cyan-500/10 text-center font-mono-tech text-[12px]">${row.project || '-'}</td>
+       <td class="py-3 px-2 text-slate-200 border-r border-cyan-500/10 text-center text-[12px] leading-snug">${row.contact || '-'}</td>
+       <td class="py-3 px-2 text-slate-300 font-mono-tech border-r border-cyan-500/10 text-center text-[11.5px] leading-snug">${row.tel || '-'}</td>
+       <td class="py-3 px-1 text-center"><button onclick="deleteRowWithSlideUp(${origIndex}, this)" class="text-rose-400 hover:text-rose-300 font-bold text-xs hover:underline">ลบ</button></td>
+     `;
+     tbody.appendChild(tr);
+   });
+
+   updateDashboardWithData(visibleData);
+ }
+
+ function updateCell(index, key, value) { 
+   workData[index][key] = value.trim(); 
+   if (key === 'delDate' || key === 'appDate' || key === 'closeDate') {
+     workData[index].status = computeAutoStatus(workData[index].delDate, workData[index].appDate, workData[index].closeDate);
+   }
+   renderTable(); 
+
+   // อัปเดตข้อมูลขึ้น Emc Data (Google Sheets) อัตโนมัติทันทีที่มีการเปลี่ยนแปลงวันที่หรือข้อมูลในตาราง
+   saveDataToGoogleSheets();
+ }
+
+ function addRow() { 
+   const todayStr = new Date().toISOString().split('T')[0];
+   workData.push({ 
+     tid: "-", bank: "-", merchant: "-", province: "-", 
+     reqDate: todayStr, delDate: "", appDate: "", closeDate: "", 
+     status: "Prepare", jobType: "-", remark: "", project: "New", contact: "-", tel: "-" 
+   }); 
+   renderTable(); 
+ }
+
+ function deleteRowWithSlideUp(index, btn) { 
+   const tr = btn.closest('tr'); 
+   if(tr) { 
+     tr.classList.add('row-deleting'); 
+     setTimeout(() => { 
+       workData.splice(index, 1); 
+       renderTable(); 
+       
+       // ส่งข้อมูลชุดใหม่ที่ทำการลบแถวแล้วขึ้นไปอัปเดตบน Google Sheets (Emc Data) อัตโนมัติ
+       saveDataToGoogleSheets();
+     }, 220); 
+   } 
+ }
+
+ function updateDashboardWithData(activeData) {
+   const statusCounts = {}; const bankCounts = {}; const provCounts = {};
+   activeData.forEach(d => {
+     statusCounts[d.status] = (statusCounts[d.status] || 0) + 1;
+     if(d.bank && d.bank !== '-') bankCounts[d.bank] = (bankCounts[d.bank] || 0) + 1;
+     if(d.province && d.province !== '-') provCounts[d.province] = (provCounts[d.province] || 0) + 1;
+   });
+   try { renderCharts(statusCounts, bankCounts, provCounts); } catch(e) {}
+ }
+
+ function renderCharts(statusData, bankData, provData) {
+   if (!window.Chart) return;
+   if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
+   if (bankChartInstance) { bankChartInstance.destroy(); bankChartInstance = null; }
+   if (provinceChartInstance) { provinceChartInstance.destroy(); provinceChartInstance = null; }
+
+   if (window.ChartDataLabels && !Chart.registry.plugins.get('datalabels')) {
+     Chart.register(ChartDataLabels);
+   }
+
+   const totalStatusCount = Object.values(statusData).reduce((a, b) => a + b, 0);
+   const totalEl = document.getElementById('center-doughnut-total');
+   if (totalEl) totalEl.innerText = totalStatusCount.toLocaleString();
+
+   const orderedStatusKeys = ['Completed', 'Appointment', 'Pending', 'Prepare'];
+   const activeStatusLabels = orderedStatusKeys.filter(k => (statusData[k] || 0) > 0);
+   const activeStatusCounts = activeStatusLabels.map(k => statusData[k]);
+
+   const statusCtxElem = document.getElementById('statusChart');
+   if (statusCtxElem) {
+     const ctx = statusCtxElem.getContext('2d');
+     const neonThemeMap = {
+       'Completed': { grad: ['rgba(16, 185, 129, 0.95)', 'rgba(5, 150, 105, 0.70)'], border: '#34d399' },
+       'Appointment': { grad: ['rgba(245, 158, 11, 0.95)', 'rgba(217, 119, 6, 0.70)'], border: '#fbbf24' },
+       'Pending': { grad: ['rgba(244, 63, 94, 0.95)', 'rgba(225, 29, 72, 0.70)'], border: '#fb7185' },
+       'Prepare': { grad: ['rgba(14, 165, 233, 0.95)', 'rgba(2, 132, 199, 0.70)'], border: '#38bdf8' }
+     };
+
+     const backgroundGradients = activeStatusLabels.map(label => {
+       const theme = neonThemeMap[label] || neonThemeMap['Prepare'];
+       const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+       gradient.addColorStop(0, theme.grad[0]);
+       gradient.addColorStop(1, theme.grad[1]);
+       return gradient;
+     });
+
+     const borderColors = activeStatusLabels.map(label => (neonThemeMap[label] || neonThemeMap['Prepare']).border);
+
+     statusChartInstance = new Chart(ctx, {
+       type: 'doughnut',
+       data: {
+         labels: activeStatusLabels,
+         datasets: [{
+           data: activeStatusCounts,
+           backgroundColor: backgroundGradients,
+           borderColor: borderColors,
+           borderWidth: 2,
+           hoverBorderWidth: 3,
+           hoverBorderColor: '#ffffff',
+           hoverOffset: 8,
+           spacing: 6,
+           borderRadius: 8
+         }]
+       },
+       options: { 
+         responsive: true,
+         maintainAspectRatio: false,
+         cutout: '66%',
+         layout: { padding: 16 },
+         animation: { animateScale: true, animateRotate: true, duration: 1100, easing: 'easeOutQuart' },
+         plugins: { 
+           legend: { display: false },
+           tooltip: {
+             backgroundColor: 'rgba(15, 23, 42, 0.95)',
+             titleColor: '#38bdf8',
+             bodyColor: '#f8fafc',
+             borderColor: 'rgba(56, 189, 248, 0.5)',
+             borderWidth: 1,
+             padding: 12,
+             boxPadding: 6,
+             usePointStyle: true,
+             titleFont: { family: 'Orbitron', size: 12, weight: 'bold' },
+             bodyFont: { family: 'Share Tech Mono', size: 12 },
+             callbacks: {
+               label: function(context) {
+                 const val = context.raw || 0;
+                 const pct = totalStatusCount > 0 ? ((val / totalStatusCount) * 100).toFixed(2) : "0.00";
+                 return ` ${context.label}: ${val.toLocaleString()} รายการ (${pct}%)`;
+               }
+             }
+           },
+           datalabels: {
+             display: function(context) { return context.dataset.data[context.dataIndex] > 0; },
+             color: '#ffffff',
+             font: { family: 'Share Tech Mono', weight: 'bold', size: 11 },
+             backgroundColor: 'rgba(3, 7, 18, 0.85)',
+             borderColor: function(context) { return borderColors[context.dataIndex]; },
+             borderWidth: 1.2,
+             borderRadius: 6,
+             padding: { top: 3, bottom: 3, left: 6, right: 6 },
+             formatter: (value) => {
+               if (totalStatusCount === 0 || value === 0) return '';
+               const percentage = ((value / totalStatusCount) * 100).toFixed(2);
+               return `${value} (${percentage}%)`;
+             }
+           }
+         } 
+       }
+     });
+   }
+
+   // Bank Chart
+   const bankLabels = Object.keys(bankData);
+   const bankColorsData = bankLabels.map((b, idx) => getBankColor(b, idx));
+   const bankCtx = document.getElementById('bankChart');
+   if (bankCtx) {
+     bankChartInstance = new Chart(bankCtx.getContext('2d'), {
+       type: 'bar',
+       data: {
+         labels: bankLabels,
+         datasets: [{
+           data: Object.values(bankData),
+           backgroundColor: bankColorsData.map(c => c.bg),
+           borderColor: bankColorsData.map(c => c.border),
+           borderWidth: 1.5,
+           borderRadius: 6
+         }]
+       },
+       options: { 
+         responsive: true, maintainAspectRatio: false,
+         scales: {
+           y: { grid: { color: 'rgba(56, 189, 248, 0.08)' }, ticks: { font: { family: 'Share Tech Mono' } } },
+           x: { grid: { display: false }, ticks: { font: { weight: 'bold', family: 'Orbitron' }, color: '#38bdf8' } }
+         },
+         plugins: { legend: { display: false }, datalabels: { color: '#fff', anchor: 'end', align: 'top' } } 
+       }
+     });
+   }
+
+   // Province Chart
+   const provLabels = Object.keys(provData);
+   const provColorsData = provLabels.map((p, idx) => getProvinceColor(p, idx));
+   const provCtx = document.getElementById('provinceChart');
+   if (provCtx) {
+     provinceChartInstance = new Chart(provCtx.getContext('2d'), {
+       type: 'bar',
+       data: {
+         labels: provLabels,
+         datasets: [{
+           data: Object.values(provData),
+           backgroundColor: provColorsData.map(c => c.bg),
+           borderColor: provColorsData.map(c => c.border),
+           borderWidth: 1.5,
+           borderRadius: 6
+         }]
+       },
+       options: { 
+         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+         scales: {
+           x: { grid: { color: 'rgba(56, 189, 248, 0.08)' }, ticks: { font: { family: 'Share Tech Mono' } } },
+           y: { grid: { display: false }, ticks: { font: { weight: 'bold', family: 'Sarabun' }, color: '#e2e8f0' } }
+         },
+         plugins: { legend: { display: false }, datalabels: { color: '#38bdf8', anchor: 'end', align: 'right' } } 
+       }
+     });
+   }
+ }
+
+ function requestGoogleSheetData() {
+   const statusText = document.getElementById('syncStatusText');
+   const dot = document.getElementById('syncIndicatorDot');
+   const ping = document.getElementById('syncIndicatorPing');
+   const icon = document.getElementById('syncIcon');
+
+   if (statusText) statusText.innerText = "SYNCING...";
+   if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400";
+   if (ping) ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75";
+   if (icon) icon.classList.add('animate-spin');
+
+   const oldScript = document.getElementById('gviz-jsonp-script');
+   if (oldScript) oldScript.remove();
+
+   const script = document.createElement('script');
+   script.id = 'gviz-jsonp-script';
+   script.src = `https://docs.google.com/spreadsheets/d/${GOOGLE_SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:handleGoogleSheetResponse&tq=`;
+   script.onerror = function() {
+     if (statusText) statusText.innerText = "PERMISSION ERROR";
+     if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
+     if (ping) ping.className = "hidden";
+     if (icon) icon.classList.remove('animate-spin');
+   };
+   document.head.appendChild(script);
+ }
+
+ window.handleGoogleSheetResponse = function(response) {
+   const statusText = document.getElementById('syncStatusText');
+   const dot = document.getElementById('syncIndicatorDot');
+   const ping = document.getElementById('syncIndicatorPing');
+   const icon = document.getElementById('syncIcon');
+
+   try {
+     if (!response || !response.table || !response.table.rows) throw new Error("Invalid response format");
+
+     const rawRows = response.table.rows;
+     const parsedRows = [];
+     let counter = 1;
+
+     rawRows.forEach(r => {
+       const getVal = (idx) => {
+         if (!r.c || !r.c[idx]) return "";
+         return r.c[idx].f !== undefined ? r.c[idx].f : (r.c[idx].v !== undefined ? r.c[idx].v : "");
+       };
+
+       const tid = String(getVal(1)).trim();
+       const merchant = String(getVal(3)).trim();
+       if (!tid && !merchant) return;
+
+       const delDate = parseToISODate(getVal(6));
+       const appDate = parseToISODate(getVal(7));
+       const closeDate = parseToISODate(getVal(8));
+
+       parsedRows.push({
+         no: counter++,
+         tid: tid,
+         bank: String(getVal(2)).trim(),
+         merchant: merchant,
+         province: String(getVal(4)).trim(),
+         reqDate: parseToISODate(getVal(5)),
+         delDate: delDate,
+         appDate: appDate,
+         closeDate: closeDate,
+         status: computeAutoStatus(delDate, appDate, closeDate),
+         jobType: String(getVal(10)).trim(),
+         remark: String(getVal(11)).trim(),
+         project: String(getVal(12)).trim() || 'New',
+         contact: String(getVal(13)).trim(),
+         tel: String(getVal(14)).trim()
+       });
+     });
+
+     const currentHash = JSON.stringify(parsedRows);
+     if (currentHash !== previousDataHash) {
+       previousDataHash = currentHash;
+       workData = parsedRows;
+       renderTable();
+     }
+
+     const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+     if (statusText) statusText.innerText = `SYNCED ${timeStr}`;
+     if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
+     if (ping) ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+
+   } catch(e) {
+     if (statusText) statusText.innerText = "DATA ERROR";
+     if (dot) dot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
+     if (ping) ping.className = "hidden";
+   } finally {
+     if (icon) icon.classList.remove('animate-spin');
+   }
+ };
+
+ function toggleAutoSync() {
+   isAutoSyncEnabled = !isAutoSyncEnabled;
+   const toggleBtn = document.getElementById('autoSyncToggleBtn');
+   const label = document.getElementById('autoSyncLabel');
+   const dot = document.getElementById('autoSyncDot');
+   const ping = document.getElementById('syncIndicatorPing');
+   const statusText = document.getElementById('syncStatusText');
+
+   if (isAutoSyncEnabled) {
+     toggleBtn.className = "px-3.5 py-2.5 rounded-xl text-xs font-semibold font-mono-tech flex items-center gap-1.5 border border-emerald-400/60 bg-emerald-950/40 text-emerald-300";
+     label.innerText = "AUTO-SYNC: ON";
+     dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+     if (ping) ping.classList.remove('hidden');
+     requestGoogleSheetData();
+     syncTimer = setInterval(requestGoogleSheetData, SYNC_INTERVAL_MS);
+   } else {
+     toggleBtn.className = "px-3.5 py-2.5 rounded-xl text-xs font-semibold font-mono-tech flex items-center gap-1.5 border border-slate-600 bg-slate-800/60 text-slate-400";
+     label.innerText = "AUTO-SYNC: OFF";
+     dot.className = "w-2 h-2 rounded-full bg-slate-500";
+     if (ping) ping.classList.add('hidden');
+     if (syncTimer) clearInterval(syncTimer);
+     if (statusText) statusText.innerText = "PAUSED";
+   }
+ }
+
+ // =========================================================================
+ // IMPORT FILE FUNCTION WITH AUTO-SYNC TO EMC DATA & 5-SEC NOTIFICATION
+ // =========================================================================
+ function importExcel(event) {
+   const file = event.target.files[0];
+   if (!file) return;
+   
+   const reader = new FileReader();
+   reader.onload = function(e) {
+     try {
+       const data = new Uint8Array(e.target.result);
+       const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+       const firstSheetName = workbook.SheetNames[0];
+       const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { 
+         raw: false, 
+         dateNF: 'dd/mm/yyyy', 
+         defval: "" 
+       });
+
+       if (!rawJson || rawJson.length === 0) {
+         showNotification("IMPORT ERROR", "⚠️ ไม่พบข้อมูลในไฟล์ที่เลือก", true);
+         return;
+       }
+
+       const findVal = (rowObj, possibleKeys) => {
+         const keys = Object.keys(rowObj);
+         for (const pKey of possibleKeys) {
+           const cleanPKey = pKey.toLowerCase().replace(/[\s\_\-\(\)\/]/g, '');
+           const found = keys.find(k => k.toLowerCase().replace(/[\s\_\-\(\)\/]/g, '') === cleanPKey);
+           if (found && rowObj[found] !== undefined && rowObj[found] !== null) {
+             return rowObj[found];
+           }
+         }
+         return "";
+       };
+
+       const parsedData = [];
+       let counter = 1;
+
+       rawJson.forEach(row => {
+         const tid = String(findVal(row, ['TID', 'tid', 'Terminal ID']) || '').trim();
+         const bank = String(findVal(row, ['Bank', 'ธนาคาร']) || '').trim();
+         const merchant = String(findVal(row, ['Merchant name (TH)', 'Merchant (TH)', 'Merchant', 'ชื่อร้านค้า']) || '').trim();
+         const province = String(findVal(row, ['Province', 'จังหวัด']) || '').trim();
+
+         if (tid || bank || merchant) {
+           const reqDate = parseToISODate(findVal(row, ['Request Date', 'Request', 'reqDate', 'วันที่แจ้ง']));
+           const delDate = parseToISODate(findVal(row, ['Delivery date', 'Delivery', 'delDate', 'วันที่ส่งมอบ']));
+           const appDate = parseToISODate(findVal(row, ['Appointment Date', 'Appoint', 'appDate', 'วันนัดหมาย']));
+           const closeDate = parseToISODate(findVal(row, ['Installment / Close Date', 'Close Date', 'Close', 'closeDate', 'วันปิดงาน']));
+           
+           const explicitStatus = String(findVal(row, ['STATUS', 'Status', 'สถานะ']) || '').trim();
+           const computedStatus = (delDate || appDate || closeDate) 
+             ? computeAutoStatus(delDate, appDate, closeDate) 
+             : (explicitStatus || 'Prepare');
+
+           parsedData.push({
+             no: counter++,
+             tid: tid || '-',
+             bank: bank || '-',
+             merchant: merchant || '-',
+             province: province || '-',
+             reqDate: reqDate,
+             delDate: delDate,
+             appDate: appDate,
+             closeDate: closeDate,
+             status: computedStatus,
+             jobType: String(findVal(row, ['Job Type', 'jobType', 'ประเภทงาน']) || '-').trim(),
+             remark: String(findVal(row, ['Remark', 'remark', 'หมายเหตุ']) || '').trim(),
+             project: String(findVal(row, ['Project', 'project', 'โครงการ']) || 'New').trim(),
+             contact: String(findVal(row, ['Contact', 'contact', 'ผู้ติดต่อ']) || '-').trim(),
+             tel: String(findVal(row, ['Telephone', 'Tel', 'tel', 'เบอร์โทร']) || '-').trim()
+           });
+         }
+       });
+
+       if (parsedData.length > 0) {
+         workData = parsedData;
+         previousDataHash = JSON.stringify(parsedData);
+
+         clearSearch();
+         renderTable();
+
+         // 1. แจ้งเตือนสำเร็จและแสดงผล 5 วินาทีแล้วปิดอัตโนมัติ
+         showNotification(
+           "IMPORT SUCCESS", 
+           `✅ นำเข้าข้อมูลสำเร็จ ${parsedData.length} รายการ และกำลัง Auto-Sync ข้อมูลไปยัง Emc Data อัตโนมัติ`
+         );
+
+         // 2. ส่งข้อมูลขึ้น Google Sheets (Emc Data) ทันทีแบบ Auto โดยไม่ต้องกดปุ่ม Manual
+         setTimeout(() => {
+           saveDataToGoogleSheets();
+         }, 800);
+
+       } else {
+         showNotification("IMPORT WARNING", "⚠️ รูปแบบหัวคอลัมน์ในไฟล์ไม่ตรงกับระบบ กรุณาตรวจสอบไฟล์อีกครั้ง", true);
+       }
+
+     } catch(err) {
+       console.error(err);
+       showNotification("IMPORT ERROR", '❌ เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message, true);
+     }
+     event.target.value = '';
+   };
+   reader.readAsArrayBuffer(file);
+ }
+
+ function exportExcel() {
+   if (!workData || workData.length === 0) { alert('ไม่มีข้อมูล'); return; }
+   try {
+     const exportRows = workData.map((item, idx) => ({
+       'No.': idx + 1, 'TID': String(item.tid || ''), 'Bank': String(item.bank || ''),
+       'Merchant name (TH)': String(item.merchant || ''), 'Province': String(item.province || ''),
+       'Request Date': formatDMY(item.reqDate), 'Delivery date': formatDMY(item.delDate),
+       'Appointment Date': formatDMY(item.appDate), 'Installment / Close Date': formatDMY(item.closeDate),
+       'Status': item.status, 'Job Type': item.jobType, 'Remark': item.remark,
+       'Project': item.project, 'Contact': item.contact, 'Telephone': item.tel
+     }));
+     const ws = XLSX.utils.json_to_sheet(exportRows);
+     const wb = XLSX.utils.book_new();
+     XLSX.utils.book_append_sheet(wb, ws, "EDC_Report");
+     XLSX.writeFile(wb, `EDC_Workload_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+   } catch(err) { alert('Error: ' + err.message); }
+ }
+
+ // ฟังก์ชันเบื้องหลังสำหรับ Auto-Sync ข้อมูลลง Google Sheets (Emc Data)
+ async function saveDataToGoogleSheets() {
+   if (!APPS_SCRIPT_WEBAPP_URL || APPS_SCRIPT_WEBAPP_URL.includes("วาง_URL")) {
+     return;
+   }
+
+   if (!workData || workData.length === 0) {
+     return;
+   }
+
+   const payloadRows = workData.map(item => ({
+     ...item,
+     reqDate: formatDMY(item.reqDate),
+     delDate: formatDMY(item.delDate),
+     appDate: formatDMY(item.appDate),
+     closeDate: formatDMY(item.closeDate)
+   }));
+
+   try {
+     await fetch(APPS_SCRIPT_WEBAPP_URL, {
+       method: 'POST',
+       mode: 'no-cors',
+       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+       body: JSON.stringify({ rows: payloadRows })
+     });
+
+     setTimeout(() => { requestGoogleSheetData(); }, 1500);
+
+   } catch (err) {
+     console.error("Auto-Sync Error:", err);
+   }
+ }
+
+ window.onload = function() {
+   renderTable();
+   requestGoogleSheetData();
+   syncTimer = setInterval(requestGoogleSheetData, SYNC_INTERVAL_MS);
+ };
+ </script>
+</body>
+</html>
