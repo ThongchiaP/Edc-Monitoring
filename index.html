@@ -25,7 +25,7 @@
     --shadow-toast:0 8px 24px rgba(15,23,32,0.08);
     --scrollbar:#D7DCE3;
     --chart-shadow: drop-shadow(0 8px 16px rgba(15,23,32,0.12));
-    --card-shadow: 0 1px 2px rgba(15,23,32,0.04), 0 8px 20px rgba(15,23,32,0.05);
+    --card-shadow: 0 1px 2px rgba(15,23,32,0.05), 0 10px 24px rgba(15,23,32,0.08);
   }
   [data-theme="dark"]{
     --ink:#ECEFF3; --ink-soft:#A9B4C0; --ink-faint:#6B7684;
@@ -49,13 +49,19 @@
   body{background:var(--page); color:var(--ink);}
   .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--card-shadow);}
   canvas{filter:var(--chart-shadow);}
-  .btn{border-radius:9px; font-weight:600; font-size:13px; padding:9px 14px; display:inline-flex; align-items:center; gap:6px; transition:background .12s ease, border-color .12s ease; white-space:nowrap;}
-  .btn-primary{background:var(--brand); color:#fff;}
+  .btn{border-radius:999px; font-weight:600; font-size:13px; padding:9px 16px; display:inline-flex; align-items:center; gap:6px; transition:background .12s ease, border-color .12s ease, transform .12s ease; white-space:nowrap;}
+  .btn:hover{transform:translateY(-1px);}
+  .btn-primary{background:var(--brand); color:#fff; box-shadow:0 4px 10px rgba(11,95,165,0.28);}
   .btn-primary:hover{background:var(--brand-dark);}
   .btn-outline{background:var(--surface); color:var(--ink-soft); border:1px solid var(--line);}
   .btn-outline:hover{border-color:var(--ink-faint); color:var(--ink);}
   .btn-danger{background:var(--surface); color:var(--bad-fg); border:1px solid var(--bad-dot);}
   .btn-danger:hover{background:var(--bad-bg);}
+  .kpi-icon{width:34px; height:34px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; font-size:15px; font-weight:700;}
+  .live-pill{display:flex; align-items:center; gap:8px; padding:9px 16px; border-radius:999px; background:var(--ok-bg); color:var(--ok-fg); font-size:12.5px; font-weight:700; font-family:'IBM Plex Mono',monospace;}
+  .pulse{position:relative;}
+  .pulse::after{content:''; position:absolute; inset:0; border-radius:999px; background:inherit; animation:pulseRing 1.8s ease-out infinite;}
+  @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(31,168,85,0.5);} 100%{box-shadow:0 0 0 8px rgba(31,168,85,0);}}
   .chip{font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface); cursor:pointer;}
   .chip.active{background:var(--contrast-bg); color:var(--contrast-fg); border-color:var(--contrast-bg);}
   .data-table{width:100%; border-collapse:collapse; table-layout:fixed;}
@@ -145,9 +151,9 @@
         <button data-mode="dark" onclick="applyTheme('dark')">มืด</button>
         <button data-mode="auto" onclick="applyTheme('auto')">อัตโนมัติ</button>
       </div>
-      <div class="flex items-center gap-2 px-3 py-2 rounded-[9px] border text-[12.5px]" style="border-color:var(--line); background:var(--surface);">
-        <span id="syncDot" class="sync-dot" style="background:var(--ok-dot);"></span>
-        <span id="syncStatusText" style="color:var(--ink-soft);">พร้อมใช้งาน</span>
+      <div class="live-pill" id="syncPill">
+        <span id="syncDot" class="sync-dot pulse" style="background:var(--ok-dot);"></span>
+        <span id="syncStatusText">พร้อมใช้งาน</span>
       </div>
       <button class="btn btn-outline" onclick="toggleAutoSync()" id="autoSyncBtn">ซิงก์อัตโนมัติ: เปิด</button>
       <button class="btn btn-outline" onclick="requestGoogleSheetData(true)">ซิงก์ตอนนี้</button>
@@ -159,23 +165,35 @@
 
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
     <div class="card p-4">
-      <p class="text-[12.5px]" style="color:var(--ink-faint);">งานทั้งหมด</p>
-      <p class="kpi-num mt-1" id="kpiTotal">0</p>
+      <div class="flex items-start justify-between">
+        <p class="text-[12.5px]" style="color:var(--ink-faint);">งานทั้งหมด</p>
+        <span class="kpi-icon" style="background:var(--brand-tint,var(--surface-alt)); color:var(--brand);">◧</span>
+      </div>
+      <p class="kpi-num mt-2" id="kpiTotal" style="color:var(--brand);">0</p>
       <p class="text-[12px] mt-1" style="color:var(--ink-soft);">รายการในระบบ</p>
     </div>
     <div class="card p-4">
-      <p class="text-[12.5px]" style="color:var(--ink-faint);">เสร็จสิ้นแล้ว</p>
-      <p class="kpi-num mt-1" id="kpiCompleted" style="color:var(--ok-fg);">0</p>
+      <div class="flex items-start justify-between">
+        <p class="text-[12.5px]" style="color:var(--ink-faint);">เสร็จสิ้นแล้ว</p>
+        <span class="kpi-icon" style="background:var(--ok-bg); color:var(--ok-fg);">✓</span>
+      </div>
+      <p class="kpi-num mt-2" id="kpiCompleted" style="color:var(--ok-fg);">0</p>
       <p class="text-[12px] mt-1" style="color:var(--ink-soft);"><span id="kpiCompletedPct">0</span>% ของงานทั้งหมด</p>
     </div>
     <div class="card p-4">
-      <p class="text-[12.5px]" style="color:var(--ink-faint);">รอดำเนินการ</p>
-      <p class="kpi-num mt-1" id="kpiPending" style="color:var(--warn-fg);">0</p>
+      <div class="flex items-start justify-between">
+        <p class="text-[12.5px]" style="color:var(--ink-faint);">รอดำเนินการ</p>
+        <span class="kpi-icon" style="background:var(--warn-bg); color:var(--warn-fg);">!</span>
+      </div>
+      <p class="kpi-num mt-2" id="kpiPending" style="color:var(--warn-fg);">0</p>
       <p class="text-[12px] mt-1" style="color:var(--ink-soft);">นัดหมาย / เตรียมงาน / ค้าง</p>
     </div>
     <div class="card p-4">
-      <p class="text-[12.5px]" style="color:var(--ink-faint);">จังหวัดที่ครอบคลุม</p>
-      <p class="kpi-num mt-1" id="kpiProvinces">0</p>
+      <div class="flex items-start justify-between">
+        <p class="text-[12.5px]" style="color:var(--ink-faint);">จังหวัดที่ครอบคลุม</p>
+        <span class="kpi-icon" style="background:var(--prep-bg); color:var(--prep-fg);">◎</span>
+      </div>
+      <p class="kpi-num mt-2" id="kpiProvinces" style="color:var(--prep-fg);">0</p>
       <p class="text-[12px] mt-1" style="color:var(--ink-soft);" id="kpiTopProvince">-</p>
     </div>
   </div>
@@ -662,10 +680,17 @@ function renderCharts(statusData, bankData, provData){
 function setSyncState(mode, timeStr){
   const dot = document.getElementById('syncDot');
   const text = document.getElementById('syncStatusText');
-  if(mode === 'syncing'){ dot.style.background = 'var(--warn-dot)'; text.textContent = 'กำลังซิงก์...'; }
-  else if(mode === 'synced'){ dot.style.background = 'var(--ok-dot)'; text.textContent = `ซิงก์ล่าสุด ${timeStr}`; }
-  else if(mode === 'error'){ dot.style.background = 'var(--bad-dot)'; text.textContent = 'ซิงก์ไม่สำเร็จ ตรวจสอบสิทธิ์การเข้าถึง'; }
-  else if(mode === 'paused'){ dot.style.background = '#B7BEC9'; text.textContent = 'หยุดการซิงก์อัตโนมัติ'; }
+  const pill = document.getElementById('syncPill');
+  const setPill = (bg, fg, dotColor, msg, pulse) => {
+    pill.style.background = bg; pill.style.color = fg;
+    dot.style.background = dotColor;
+    dot.classList.toggle('pulse', !!pulse);
+    text.textContent = msg;
+  };
+  if(mode === 'syncing') setPill('var(--warn-bg)','var(--warn-fg)','var(--warn-dot)','กำลังซิงก์...', true);
+  else if(mode === 'synced') setPill('var(--ok-bg)','var(--ok-fg)','var(--ok-dot)', `Realtime: LIVE ${timeStr ? '· '+timeStr : ''}`, true);
+  else if(mode === 'error') setPill('var(--bad-bg)','var(--bad-fg)','var(--bad-dot)','ซิงก์ไม่สำเร็จ ตรวจสอบสิทธิ์การเข้าถึง', false);
+  else if(mode === 'paused') setPill('var(--line-soft)','var(--ink-faint)','var(--ink-faint)','หยุดการซิงก์อัตโนมัติ', false);
 }
 
 function requestGoogleSheetData(manual){
