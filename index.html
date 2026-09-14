@@ -575,7 +575,7 @@ function renderTable(){
           </select>
         </td>
         <td data-label="ประเภทงาน">
-          <input class="cell-input text-center" list="jobTypeList" value="${row.jobType||''}" onchange="updateCell(${idx},'jobType',this.value)">
+          <input class="cell-input text-center" value="${row.jobType||''}" onchange="updateCell(${idx},'jobType',this.value)">
         </td>
         <td data-label="หมายเหตุ"><input class="cell-input" value="${(row.remark||'').replace(/"/g,'&quot;')}" onchange="updateCell(${idx},'remark',this.value)"></td>
         <td data-label="ผู้ติดต่อ"><input class="cell-input" value="${row.contact||''}" onchange="updateCell(${idx},'contact',this.value)"></td>
