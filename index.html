@@ -279,6 +279,10 @@
 
 <datalist id="bankList"></datalist>
 <datalist id="provinceList"></datalist>
+<datalist id="jobTypeList">
+  <option value="Installation"><option value="Tamper"><option value="Printer"><option value="Wifi">
+  <option value="Monitor"><option value="Time Sync"><option value="Login"><option value="Remove"><option value="Other">
+</datalist>
 
 <script>
 const GOOGLE_SPREADSHEET_ID = "1rqoO4FYlzSO2mu2dHv_oeNMyK1czad6nUKFy2W50UKo";
@@ -571,9 +575,7 @@ function renderTable(){
           </select>
         </td>
         <td data-label="ประเภทงาน">
-          <select class="cell-input" style="text-align:center; text-align-last:center;" onchange="updateCell(${idx},'jobType',this.value)">
-            ${jobTypeOptions.map(o => `<option value="${o}" ${o===row.jobType?'selected':''}>${o}</option>`).join('')}
-          </select>
+          <input class="cell-input text-center" list="jobTypeList" value="${row.jobType||''}" onchange="updateCell(${idx},'jobType',this.value)">
         </td>
         <td data-label="หมายเหตุ"><input class="cell-input" value="${(row.remark||'').replace(/"/g,'&quot;')}" onchange="updateCell(${idx},'remark',this.value)"></td>
         <td data-label="ผู้ติดต่อ"><input class="cell-input" value="${row.contact||''}" onchange="updateCell(${idx},'contact',this.value)"></td>
